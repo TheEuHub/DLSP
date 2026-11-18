@@ -1,0 +1,111 @@
+{
+  "DLSVersion": "2.1.6",
+  "Name": "1 PIN LOCK",
+  "NameLocation": 0,
+  "ChipType": 0,
+  "Size": {
+    "x": 0.95,
+    "y": 0.5
+  },
+  "Colour": {
+    "r": 0.820796847,
+    "g": 0.009189558,
+    "b": 0.08030085,
+    "a": 1
+  },
+  "InputPins":[
+    {
+      "Name":"IN",
+      "ID":1998550482,
+      "Position":{
+        "x":-0.875,
+        "y":-2.5
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    },
+    {
+      "Name":"UNLOCK",
+      "ID":709098579,
+      "Position":{
+        "x":-0.875,
+        "y":-3.0
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "OutputPins":[
+    {
+      "Name":"OUT",
+      "ID":13431035,
+      "Position":{
+        "x":2.125,
+        "y":-2.625
+      },
+      "BitCount":1,
+      "Colour":0,
+      "ValueDisplayMode":0
+    }
+  ],
+  "SubChips":[
+    {
+      "Name":"OND",
+      "ID":1346708764,
+      "Label":"",
+      "Position":{
+        "x":0.61,
+        "y":-2.625
+      },
+      "OutputPinColourInfo":[{"PinColour":0,"PinID":1158407955}],
+      "InternalData":null
+    }
+  ],
+  "Wires":[
+    {
+      "SourcePinAddress":{
+        "PinID":0,
+        "PinOwnerID":1998550482
+      },
+      "TargetPinAddress":{
+        "PinID":1023762808,
+        "PinOwnerID":1346708764
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":0,
+        "PinOwnerID":709098579
+      },
+      "TargetPinAddress":{
+        "PinID":427420713,
+        "PinOwnerID":1346708764
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":-3.0},{"x":0.0,"y":-2.75},{"x":0.0,"y":0.0}]
+    },
+    {
+      "SourcePinAddress":{
+        "PinID":1158407955,
+        "PinOwnerID":1346708764
+      },
+      "TargetPinAddress":{
+        "PinID":0,
+        "PinOwnerID":13431035
+      },
+      "ConnectionType":0,
+      "ConnectedWireIndex":-1,
+      "ConnectedWireSegmentIndex":-1,
+      "Points":[{"x":0.0,"y":0.0},{"x":0.0,"y":0.0}]
+    }
+  ],
+  "Displays":[]
+}
