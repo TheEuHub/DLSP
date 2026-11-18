@@ -1,0 +1,172 @@
+{
+  "ProjectName": "PC_EYE_OS",
+  "DLSVersion_LastSaved": "2.1.6",
+  "DLSVersion_EarliestCompatible": "2.0.0",
+  "CreationTime": "2026-11-05T19:34:19.633-06:00",
+  "LastSaveTime": "2026-11-18T16:15:11.103-06:00",
+  "Prefs_MainPinNamesDisplayMode": 1,
+  "Prefs_ChipPinNamesDisplayMode": 1,
+  "Prefs_GridDisplayMode": 1,
+  "Prefs_Snapping": 1,
+  "Prefs_StraightWires": 1,
+  "Prefs_SimPaused": false,
+  "Prefs_SimTargetStepsPerSecond": 2000,
+  "Prefs_SimStepsPerClockTick": 8,
+  "AllCustomChipNames":[
+    "NOND",
+    "OND",
+    "NOT",
+    "XOR",
+    "XNOR",
+    "OR",
+    "NOR",
+    "FULL ADDER",
+    "HALF ADDER",
+    "4BIT FULL ADDER",
+    "8BIT FULL ADDER",
+    "T FLIP FLOP",
+    "D FLIP FLOP",
+    "4BIT D FLIP FLOP",
+    "8BIT D FLIP FLOP",
+    "8BIT REG",
+    "DISP",
+    "8 PIN LOCK",
+    "4 PIN LOCK",
+    "1 PIN LOCK"
+  ],
+  "StarredList":[
+    {
+      "Name":"IN/OUT",
+      "IsCollection":true
+    },
+    {
+      "Name":"MERGE/SPLIT",
+      "IsCollection":true
+    },
+    {
+      "Name":"RGB DISPLAY",
+      "IsCollection":false
+    },
+    {
+      "Name":"LED",
+      "IsCollection":false
+    },
+    {
+      "Name":"NOT",
+      "IsCollection":false
+    },
+    {
+      "Name":"OND",
+      "IsCollection":false
+    },
+    {
+      "Name":"NOND",
+      "IsCollection":false
+    },
+    {
+      "Name":"OR",
+      "IsCollection":false
+    },
+    {
+      "Name":"NOR",
+      "IsCollection":false
+    },
+    {
+      "Name":"XOR",
+      "IsCollection":false
+    },
+    {
+      "Name":"XNOR",
+      "IsCollection":false
+    },
+    {
+      "Name":"HALF ADDER",
+      "IsCollection":false
+    },
+    {
+      "Name":"FULL ADDER",
+      "IsCollection":false
+    },
+    {
+      "Name":"4BIT FULL ADDER",
+      "IsCollection":false
+    },
+    {
+      "Name":"8BIT FULL ADDER",
+      "IsCollection":false
+    },
+    {
+      "Name":"T FLIP FLOP",
+      "IsCollection":false
+    },
+    {
+      "Name":"D FLIP FLOP",
+      "IsCollection":false
+    },
+    {
+      "Name":"4BIT D FLIP FLOP",
+      "IsCollection":false
+    },
+    {
+      "Name":"8BIT D FLIP FLOP",
+      "IsCollection":false
+    },
+    {
+      "Name":"8BIT REG",
+      "IsCollection":false
+    },
+    {
+      "Name":"DISP",
+      "IsCollection":false
+    },
+    {
+      "Name":"8 PIN LOCK",
+      "IsCollection":false
+    },
+    {
+      "Name":"4 PIN LOCK",
+      "IsCollection":false
+    },
+    {
+      "Name":"1 PIN LOCK",
+      "IsCollection":false
+    }
+  ],
+  "ChipCollections":[
+    {
+      "Chips":["NAND","CLOCK","PULSE","KEY","3-STATE BUFFER"],
+      "IsToggledOpen":false,
+      "Name":"BASIC"
+    },
+    {
+      "Chips":["IN-1","IN-4","IN-8","OUT-1","OUT-4","OUT-8"],
+      "IsToggledOpen":false,
+      "Name":"IN/OUT"
+    },
+    {
+      "Chips":["1-4BIT","1-8BIT","4-8BIT","4-1BIT","8-4BIT","8-1BIT"],
+      "IsToggledOpen":false,
+      "Name":"MERGE/SPLIT"
+    },
+    {
+      "Chips":["BUS-1","BUS-4","BUS-8"],
+      "IsToggledOpen":false,
+      "Name":"BUS"
+    },
+    {
+      "Chips":["7-SEGMENT","DOT DISPLAY","RGB DISPLAY","LED"],
+      "IsToggledOpen":true,
+      "Name":"DISPLAY"
+    },
+    {
+      "Chips":["ROM 256×16"],
+      "IsToggledOpen":false,
+      "Name":"MEMORY"
+    },
+    {
+      "Chips":["BUZZER","NOND","OND","NOT","XOR","XNOR","OR","NOR","FULL ADDER","HALF ADDER","4BIT FULL ADDER","8BIT FULL ADDER","T FLIP FLOP","D FLIP FLOP","4BIT D FLIP FLOP","8BIT D FLIP FLOP","8BIT REG","DISP","8 PIN LOCK","4 PIN LOCK","1 PIN LOCK"],
+      "IsToggledOpen":false,
+      "Name":"OTHER"
+    }
+  ]
+}
