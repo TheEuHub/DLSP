@@ -119,6 +119,11 @@ L3  RGB SCREEN                       RGB DISPLAY + power lamp    │
 L3  HDMI TYPE A                      19-pin connector + receivers│
 L4  TMDS 9B ENCODER / DECODER        8b<->9b transition coding   │
 L5  HDMI DISPLAY                     connector → decode → screen │
+    ── computer (section 6) ──                                   │
+L2  CONST 1, MUX 1/4/8, REG 1/4, XOR 8, ISZERO 8                 │
+L3  DECODER 4 TO 16, ALU 8           op select, instruction decode│
+L4  CPU 8                            registers + ROM + ALU + CU  │
+L5  PC_EYE 8                         CPU 8 + RGB SCREEN = a PC   │
 ```
 
 ### 4.2 Chip inventory (verified behaviour)
@@ -286,6 +291,10 @@ state (both `MEM` and `-MEM` settle equal on a cold start). A register file or
 PC built from these parts would start in an undefined state. Adding a clear
 input to the D latch (extra gate on the NOR latch) would fix the whole family.
 
+**Worked around:** `CPU 8` gives every state register a reset mux in front of its
+data input, driven by `¬POWER`, so the machine boots from a defined state and a
+power cycle restarts the kernel (section 6.6).
+
 ### 🟡 R3 — `8BIT FULL ADDER` cannot be cascaded
 
 `4BIT FULL ADDER` exposes `C IN`, but `8BIT FULL ADDER` drops it (the low-nibble
@@ -305,29 +314,189 @@ can't do subtract-on-add (`A + ~B + 1`) at 8 bits either. Worth exposing
 
 ---
 
-## 6. What is still missing for a working "PC_EYE_OS"
+## 6. The operating system
 
-Present: gate library, adders, latches, edge-triggered register, display stub.
-Absent:
+Section 6 of the old review said the machine could not run because there was no
+decoder, no ALU, no program counter and no memory in use. All of that now
+exists: `PC_EYE_8` is a complete 8-bit computer with a ROM-resident kernel, and
+it boots in the simulator (section 6.6).
 
-| Missing block | Note |
+### 6.1 What was added
+
+| Chip | In → Out | Built from | NAND leaves |
+| --- | --- | --- | --- |
+| `CONST 1` | – → 1 | one `NAND` fed by itself | 1 |
+| `MUX 1` | `IN A`,`IN B`,`SEL` → `OUT` | NOT + 2×OND + OR | 8 |
+| `MUX 4` | 4-bit A/B + `SEL` → 4-bit `OUT` | 4×`MUX 1` + splitters | 29 |
+| `MUX 8` | 8-bit A/B + `SEL` → 8-bit `OUT` | 8×`MUX 1` + splitters | 57 |
+| `REG 1` | `DATA`,`LOAD` → `MEM`,`-MEM` | 2×`D FLIP FLOP` + NOT (master/slave) | 27 |
+| `REG 4` | 4-bit `DATA` + `LOAD` → `MEM` | 4×`REG 1` | 105 |
+| `XOR 8` | 8-bit A/B → `OUT` | ripple of 4×`XOR` | 32 |
+| `ISZERO 8` | 8-bit `IN` → `OUT` | OR tree of 8, inverted | 22 |
+| `DECODER 4 TO 16` | 4-bit `IN` → `O0..O15` | 16×4-input AND + 4 inverters | 100 |
+| `ALU 8` | `IN A`,`IN B`,`OP0`,`OP1` → `OUT` | `8BIT FULL ADDER` + `XOR 8` + 8 muxes | 339 |
+| `CPU 8` | `CLK`,`POWER` → `ADDR`,`R`,`G`,`B`,`WRITE` | 49 sub-chips | 2375 |
+| `PC_EYE 8` | `CLK`,`POWER` → — | `CPU 8` + `RGB SCREEN` | 2379 |
+
+`ALU 8` op select: `00` = pass B, `01` = A+B, `10` = A AND B, `11` = A XOR B.
+That is enough for a real ISA (load, add, mask, compare) without a subtractor:
+`CMPX` computes `X XOR operand` and sets Z when the result is zero.
+
+### 6.2 `CPU 8` — the machine
+
+Single cycle, one instruction per rising clock edge, state in six
+master/slave registers plus the Z flag:
+
+```
+             ┌─────────────── ROM 256x16 ───────────────┐
+   PC ──────▶│ ADDRESS                             OUT B/A│
+             └──────────────────────────────────────────┘
+                      │ opcode[7:4]      │ operand[7:0] (jump target)
+                      ▼                  │
+              DECODER 4 TO 16            │
+                      │ 16 control lines │
+      ┌───────────────┼──────────────────┼──────────────────┐
+      ▼               ▼                  ▼                  ▼
+   ┌─────┐        ┌──────┐          ┌─────────┐       ┌─────────┐
+   │  A  │◀─ALU──│ ALU 8│          │   PC    │       │  R,G,B  │
+   └─────┘        └──────┘          └─────────┘       └─────────┘
+      │               ▲                  ▲                  │
+      └──▶ ADDR ──▶ RGB SCREEN           │                  └──▶ RED/GREEN/BLUE
+                                          │
+      X ──▶ ADDR, ALU, XOR ──▶ ISZERO ──▶ Z
+```
+
+**Timing idiom.** Every register has `LOAD = CLK` and its data input is a 2:1
+mux: `DATA = (write-enable ? new value : its own MEM)`, with a second mux that
+forces `0` while `POWER` is low. The master half of the register captures during
+the low phase, i.e. exactly when the current instruction's control lines are
+stable, so a write-enable can never leak into the next instruction.
+
+The first version of the CPU gated the enables with the clock (`LOAD = WE ∧ CLK`)
+and it deadlocked: while `CLK` stayed high the *next* instruction's decoder
+outputs were already active, so flags were loaded one instruction early and a
+`CMPX #0` never set Z. The mux idiom above is the fix; it is also what makes the
+design robust to any clock period.
+
+### 6.3 ISA
+
+16-bit words: `[opcode:4][unused:4][operand:8]`.
+
+| # | Mnemonic | Effect |
+| --- | --- | --- |
+| `0` | `NOP` | – |
+| `1` | `LDI n` | `A ← n` |
+| `2` | `LDX n` | `X ← n` |
+| `3` | `ADDX n` | `X ← X + n` |
+| `4` | `CMPX n` | `Z ← (X == n)` |
+| `5` | `SETC c` | `R,G,B ← high,mid,low nibble of c` |
+| `6` | `PIX` | write colour to `screen[X]` |
+| `7` | `JMP a` | `PC ← a` |
+| `8` | `JZ a` | `PC ← a if Z` |
+| `9` | `ADD n` | `A ← A + n` |
+| `A` | `AND n` | `A ← A ∧ n` |
+| `B` | `XOR n` | `A ← A ⊕ n` |
+| `F` | `HLT` | stop fetching |
+
+There is no stack and no indirect addressing: the ROM is 256 words and the
+machine is a display driver, not a general-purpose computer.
+
+### 6.4 The kernel
+
+`tools/kernel.py` is a two-pass assembler plus the kernel source; it emits
+`tools/kernel.hex` (address → 16-bit word) and a listing. 67 words:
+
+1. **POST** — flood the panel white, which proves every pixel address and the
+   panel latch.
+2. **Desktop** — fill the panel with the background colour `0x124`.
+3. **Frame** — draw the amber window border `0xF80`: top row, bottom row, then
+   the two side columns stepping by 16.
+4. **Idle** — a 2×2 green cursor at `screen[136]` that blinks: write, busy-wait
+   200 iterations, erase, busy-wait, repeat.
+
+```
+post:   SETC #0xFFF / LDX #0 / PIX / ADDX #1 / CMPX #0 / JZ desktop / JMP post
+clear:  SETC #0x124 / LDX #0 / PIX / ADDX #1 / CMPX #0 / JZ frame   / JMP clear
+frame:  SETC #0xF80 / top row (0..15) / bottom row (240..255) / left col / right col
+cursor: SETC #0x0F0 / PIX ×4 / delay / SETC #0x124 / PIX ×4 / delay / JMP cursor
+```
+
+Loop termination is done by wrap-around rather than by a second compare: the
+clear loop runs until `ADDX #1` turns 255 into 0, then `CMPX #0` fires. Saves a
+compare per iteration and keeps the ROM small.
+
+### 6.5 ROM is not part of the chip file
+
+`ROM 256×16` keeps its contents in runtime state, and `ChipDescription` has no
+field that carries that state (checked against the Rewired reimplementation:
+`Rom_256x16` reads `chip.InternalState[address]`). A `.chip` file therefore ships
+an **empty** ROM. `tools/rom_loader.md` explains this and lists the 67 words so
+the ROM can be typed in by hand; the simulator loads them with
+`Project.load_rom('tools/kernel.hex')`.
+
+### 6.6 Boot proof
+
+`python3 tools/boot.py` loads `kernel.hex`, raises `POWER`, toggles `CLK` for
+3400 instructions and screenshots the panel:
+
+```
+################
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+#.......OO.....#
+#.......OO.....#
+#..............#
+#..............#
+#..............#
+#..............#
+#..............#
+################
+```
+
+Legend: `#` amber frame `0xF80`, `.` desktop `0x124`, `O` cursor `0x0F0`.
+
+Verified in simulation:
+
+| Check | Result |
 | --- | --- |
-| Multiplexer / demux / decoder | none defined; needed for ALU op select, register select, instruction decode |
-| ALU | only adders; no AND/OR/XOR/SUB selectable path |
-| Program counter, instruction register, control unit | none |
-| Memory in use | `ROM 256×16` and `BUS-1/4/8` are available but unused in `PC_EYE_OS` (BUS only appears in `REFS`) |
-| Tri-state busing | `3-STATE BUFFER` and `BUS-*` never used in the library |
-| Clock usage | `CLOCK`/`PULSE` unused; nothing is clocked |
-| Reset | see R2 |
-| Raster/address generator | the screen takes `ADDR`/`WRITE`/`CLOCK` from outside; nothing sweeps the 16×16 grid yet |
+| `POWER = 0` holds every register at 0 | ✅ `PC` stays 0 |
+| POST floods 256 white pixels | ✅ |
+| Desktop fills 256 background pixels | ✅ |
+| Border draws 60 amber pixels (16+16+14+14) | ✅ |
+| Cursor blinks (on ≈ 800 instr, off ≈ 800) | ✅ |
+| Power cycle restarts the POST | ✅ 24 → 214 white pixels mid-flood |
 
-The natural next steps are: fix `4 PIN LOCK`, add a multiplexer/decoder layer,
-add `C IN` to the 8-bit adder, then wire a control unit around `8BIT REG` and
-the `ROM 256×16`.
+Screenshot: `tools/os_screenshot.png`. Raw frame: `tools/framebuffer.json`
+(`(B<<8)|(G<<4)|R` per pixel).
 
----
+Machine cost: `PC_EYE 8` flattens to **2379 NAND gates**, 162 bus operations,
+one ROM and one display.
 
-## 7. Tooling added
+## 7. What was missing (now historical)
+
+The original review listed the blocks a working PC_EYE_OS would need. Status:
+
+| Block | Status |
+| --- | --- |
+| Multiplexer / demux / decoder | ✅ `MUX 1/4/8`, `DECODER 4 TO 16` |
+| ALU | ✅ `ALU 8` — pass / add / and / xor |
+| Program counter, control unit | ✅ inside `CPU 8` |
+| Memory in use | ✅ `ROM 256x16` holds the kernel; `BUS-*` still unused |
+| Tri-state busing | ⬜ still unused — the datapath uses muxes instead |
+| Clock usage | ✅ everything is clocked from `CLK` |
+| Reset | ✅ `¬POWER` mux per register (see R2) |
+| Raster/address generator | ✅ the kernel is the address generator |
+
+The remaining wants for a bigger machine: a `C IN` on `8BIT FULL ADDER` (R3) so
+16-bit addresses become possible, RAM (there is none — `BUS-*` gives no storage),
+and a stack pointer, which needs RAM.
+
+## 8. Tooling added
 
 `tools/dlsp_sim.py` — a small reader/simulator for this project format:
 
@@ -345,6 +514,18 @@ PY
 * `Project(root).sim(chip).step({inputs})` — state-preserving stepping, needed
   for latches/registers/toggle logic (bistables keep their value between steps).
 * `Project(root).compile(chip)` — the flattened NAND/bus netlist.
+* `Project(root).load_rom(path)` — fill every `ROM 256x16` from a hex image.
+* `Sim.framebuffer()` — the 256 words the panel is showing (`(B<<8)|(G<<4)|R`).
+
+Machine-level tools:
+
+| File | Purpose |
+| --- | --- |
+| `tools/kernel.py` | two-pass assembler + kernel source → `tools/kernel.hex` + listing |
+| `tools/boot.py` | boot the machine, render the screen as ASCII, write `tools/os_screenshot.png` |
+| `tools/selftest.py` | truth tables for all twelve OS chips, plus the boot/border/cursor assertions |
+| `tools/build_os.py` | regenerates the twelve chip JSON files from Python |
+| `tools/rom_loader.md` | why the ROM cannot live in a chip file, and the 67-word image |
 
 Note: a plain static `run()` starts every net at `0`, so memory-holding states
 look "unstable" from cold. That is a limitation of cold-start evaluation, not a

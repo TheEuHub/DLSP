@@ -36,7 +36,19 @@
     "HDMI TYPE A",
     "TMDS 9B ENCODER",
     "TMDS 9B DECODER",
-    "HDMI DISPLAY"
+    "HDMI DISPLAY",
+    "CONST 1",
+    "MUX 1",
+    "MUX 4",
+    "MUX 8",
+    "REG 1",
+    "REG 4",
+    "XOR 8",
+    "ISZERO 8",
+    "DECODER 4 TO 16",
+    "ALU 8",
+    "CPU 8",
+    "PC_EYE 8"
   ],
   "StarredList": [
     {
@@ -250,10 +262,40 @@
         "HDMI TYPE A",
         "HDMI DISPLAY",
         "TMDS 9B ENCODER",
-        "TMDS 9B DECODER"
+        "TMDS 9B DECODER",
+        "CONST 1",
+        "MUX 1",
+        "MUX 4",
+        "MUX 8",
+        "REG 1",
+        "REG 4",
+        "XOR 8",
+        "ISZERO 8",
+        "DECODER 4 TO 16",
+        "ALU 8",
+        "CPU 8",
+        "PC_EYE 8"
       ],
       "IsToggledOpen": false,
       "Name": "OTHER"
+    },
+    {
+      "Chips": [
+        "CONST 1",
+        "MUX 1",
+        "MUX 4",
+        "MUX 8",
+        "REG 1",
+        "REG 4",
+        "XOR 8",
+        "ISZERO 8",
+        "DECODER 4 TO 16",
+        "ALU 8",
+        "CPU 8",
+        "PC_EYE 8"
+      ],
+      "IsToggledOpen": false,
+      "Name": "CPU"
     }
   ]
 }

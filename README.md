@@ -4,11 +4,16 @@ Digital Logic Sim project archive.
 
 | Path | What it is |
 | --- | --- |
-| `PC_EYE_OS/` | Main library: 24 custom chips — NAND-based gates → adders → latches → 8-bit register → RGB screen → HDMI link. DLS 2.1.6. |
+| `PC_EYE_OS/` | Main library: 36 custom chips — NAND-based gates → adders → latches → registers → muxes/decoder/ALU → **a working 8-bit computer** → RGB screen → HDMI link. DLS 2.1.6. |
 | `REFS/` | Scratch reference project: one chip showing the pinout of every built-in splitter, merger, bus and the RGB display. |
 | `ANALYSIS.md` | Full review: format documentation, per-chip verification, and the defects found. |
 | `tools/dlsp_sim.py` | Reader/simulator for the chip format — flattens any chip to NAND leaves and evaluates it. |
 | `tools/build_hdmi.py` | Generator for the five HDMI/RGB-screen chips (they are machine-built, not hand-drawn). |
+| `tools/build_os.py` | Generator for the twelve OS chips (`CONST 1` … `CPU 8`, `PC_EYE 8`). |
+| `tools/kernel.py` | Two-pass assembler + the 67-word kernel; writes `tools/kernel.hex`. |
+| `tools/boot.py` | Boots the machine in the simulator, prints the screen, writes `tools/os_screenshot.png`. |
+| `tools/selftest.py` | Regression test: every OS chip's truth table + the kernel's boot frame. |
+| `tools/rom_loader.md` | Why the ROM contents cannot live in a chip file, and how to load them. |
 
 ## Display chain
 
@@ -43,6 +48,38 @@ e = p.run('TMDS 9B ENCODER', {'D': 0x9C, 'DE': 1})            # {'Q': ..., 'Q8':
 print(p.run('TMDS 9B DECODER', {'Q': e['Q']}))                # {'D': 156}
 PY
 ```
+
+## Operating system
+
+`PC_EYE_OS` is not just a chip library any more — it boots.
+
+```
+  POWER, CLK ──▶ PC_EYE 8 ──┬── CPU 8 ──▶ ADDR, R, G, B, WRITE ──▶ RGB SCREEN
+                            │     │
+                            │     └── ROM 256x16 ◀── tools/kernel.hex
+                            └── 2379 NAND gates, 16x16 panel, 12-bit colour
+```
+
+![the desktop](tools/os_screenshot.png)
+
+* **Kernel** (`tools/kernel.py`, 67 words): POST floods the panel white, then
+  paints the desktop, draws the amber window frame, and settles into the idle
+  loop — a 2×2 green cursor that blinks.
+* **CPU** (`CPU 8`): 8-bit single-cycle machine, `CLK` + `POWER` only. Program
+  counter, accumulator, X index, three 4-bit colour registers and a Z flag, all
+  in master/slave registers with a `¬POWER` reset mux. ISA: `NOP/LDI/LDX/ADDX/
+  CMPX/SETC/PIX/JMP/JZ/ADD/AND/XOR/HLT`.
+* **Boot proof**: `python3 tools/boot.py` — runs the real simulation and prints
+  the frame. `settled: True`.
+
+```bash
+python3 tools/kernel.py     # assemble the kernel -> tools/kernel.hex
+python3 tools/boot.py       # boot it, print + screenshot the screen
+python3 tools/selftest.py   # truth tables + boot regression (exit 0 = all good)
+```
+
+The ROM contents are **not** part of the chip file (the format has no field for
+them); see `tools/rom_loader.md`.
 
 ## Open issue
 
